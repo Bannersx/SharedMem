@@ -50,7 +50,7 @@ Message circ_bbuf_pop(buffer *c, Message data)
 //Function to show messages when consumming them.
 void print_message(Message message){
 
-    printf(" \033[22;32m    *-----------------------Consuming Message------------------------------*\n\n");
+    printf(" \033[22;32m    *-----------------------Displaying Message------------------------------*\n\n");
     printf("\033[22;33m        The process ID is: \033[22;37m%d\n",message.pid);
     printf("\033[22;33m        Shared Memory stored as: \033[22;37m%d\n",message.key);
     printf("\n \033[22;32m    *-------------------------End of Message-------------------------------*\033[22;0m\n");
@@ -141,4 +141,15 @@ int keypress(unsigned char echo)
     }
 
     return c;
+}
+
+//Function to generate a random number between 0 and 6
+int gen_key(){
+    
+    time_t t;
+
+    /* Intializes random number generator */
+    srand((unsigned) time(&t));
+    int r = (rand() % (6 + 1 - 0)) + 0;
+    return r;
 }

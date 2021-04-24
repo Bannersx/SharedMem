@@ -52,13 +52,6 @@ int main (int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-    printf("\n  -> Opening the semaphore: %s...\n", SEM_CONSUMER_FNAME);
-    sem_t * sem_cons = sem_open(SEM_CONSUMER_FNAME,0);
-    //Checking if the semaphore was created succesfully
-    if (sem_cons == SEM_FAILED){
-        perror("sem_open/consumer");
-        exit(EXIT_FAILURE);
-    }
 
     //Creating the full semaphore: This is used to count the number of full items in the buffer
     printf("\n  -> Opening the semaphore: %s...\n", SEM_FULL_FNAME);
@@ -71,9 +64,9 @@ int main (int argc, char *argv[]){
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
     printf("\n  -> Opening the semaphore: %s...\n", SEM_EMPTY_FNAME);
-    sem_t * sem_empty = sem_open(SEM_CONSUMER_FNAME, 0660,0);
+    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, 0660,0);
     //Checking if the semaphore was created succesfully
-    if (sem_cons == SEM_FAILED){
+    if (sem_empty == SEM_FAILED){
         perror("sem_open/consumer");
         exit(EXIT_FAILURE);
     }
@@ -93,53 +86,99 @@ int main (int argc, char *argv[]){
         (buffer *) mmap(0, sizeof(buffer), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     
 
-    buffer * buff = addr;
-    add_cons(buff);
+    buffer * buff = addr; //Reader the buffer contents
+    add_cons(buff); //Increasing the consumers counter
+
 /*------------------- Working: consuming message----------------------------------*/
     
-    while (buff->work){
-        printf("\n \033[22;36m*--------------------Starting a new Consumption cycle------------------------*\033[22;0m");
-        time_t start = time(NULL);
-        //sleep(wait_time);
+    if (mode[0] == 'm'){
+
+        while (buff->work){
+            printf("\n      Press space to read a message");
+            while(keypress(0)!= ' ');
+            printf("\n \033[22;36m*--------------------Starting a new Consumption cycle------------------------*\033[22;0m");
+            time_t start = time(NULL);
+            //sleep(wait_time);
 
 
-        sem_wait(sem_full); //If full value is 0 there are no messages to be read so we wait.
-        printf("\n   Waiting for semaphore to be available\n");
-        sem_wait(sem_prod);//opening semaphore
+            sem_wait(sem_full); //If full value is 0 there are no messages to be read so we wait.
+            printf("\n   Waiting for semaphore to be available\n");
+            sem_wait(sem_prod);//We can read once someone has produced messages.
 
-        time_t finish = time(NULL);
+            time_t finish = time(NULL);
 
-        buff->wait_time += finish - start ;
+            buff->wait_time += finish - start ;
 
-        printf("\n   Semaphore is available now...\n");
-        int fd = shm_open(shm_name, O_RDWR,0666);
-        if (fd <0){
-            perror("shm_open()");
-            return EXIT_FAILURE;
-        }
-        /*
-        void * addr = 
-            (buffer *) mmap(0, sizeof(buffer), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-      
-
-        buff = addr;
-        */
-           
-        
-        
-        sem_post(sem_cons);
-        sem_post(sem_empty);
-        if(buff->work){
-            Message temp = circ_bbuf_pop(buff,temp); 
-            print_message(temp);
-            if (temp.key == temp.pid || temp.key == (cons_pid % 6)){
-                printf("\n |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
-                rem_key_cons(buff);
-                break;
+            printf("\n   Semaphore is available now...\n");
+            int fd = shm_open(shm_name, O_RDWR,0666);
+            if (fd <0){
+                perror("shm_open()");
+                return EXIT_FAILURE;
             }
+            
+            sem_post(sem_prod); //Releasing the mutex to allow a producer to produce
+            sem_post(sem_empty); //Increasing the number of empty elements in the buffer
+
+            if(buff->work){        //If we are allowed to work, we proceed with consuming a message.
+                
+                Message temp = circ_bbuf_pop(buff,temp); 
+                print_message(temp);
+                
+                if (temp.key == temp.pid || temp.key == (cons_pid % 6)){ //checking for the special condition to stop the process
+
+                    printf("\n |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
+                    rem_key_cons(buff);
+                    break;
+                }
+            }
+
+        }
+    }else{
+        while (buff->work){
+            
+            printf("\n \033[22;36m*--------------------Starting a new Consumption cycle------------------------*\033[22;0m");
+            time_t start = time(NULL);
+            //sleep(wait_time);
+
+
+            sem_wait(sem_full); //If full value is 0 there are no messages to be read so we wait.
+            printf("\n   Waiting for semaphore to be available\n");
+            sem_wait(sem_prod);//opening semaphore
+
+            time_t finish = time(NULL);
+
+            buff->wait_time += finish - start ;
+
+            printf("\n   Semaphore is available now...\n");
+            int fd = shm_open(shm_name, O_RDWR,0666);
+            if (fd <0){
+                perror("shm_open()");
+                return EXIT_FAILURE;
+            }
+            /*
+            void * addr = 
+                (buffer *) mmap(0, sizeof(buffer), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        
+
+            buff = addr;
+            */           
+            
+            
+            sem_post(sem_prod);
+            sem_post(sem_empty);
+            if(buff->work){
+                Message temp = circ_bbuf_pop(buff,temp); 
+                print_message(temp);
+                if (temp.key == temp.pid || temp.key == (cons_pid % 6)){
+                    printf("\n |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
+                    rem_key_cons(buff);
+                    break;
+                }
+            }
+
+            
         }
 
-        
     }
     
 
@@ -152,7 +191,6 @@ int main (int argc, char *argv[]){
     printf("\n   \033[22;0mMaking things nice and tidy before closing...\n");
 
     sem_close(sem_prod);
-    sem_close(sem_cons);
     sem_close(sem_full);
     sem_close(sem_empty);
     printf("\n   Consumer pid: %d is now closing\n", cons_pid);

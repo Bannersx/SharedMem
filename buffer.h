@@ -5,7 +5,7 @@
 #include <semaphore.h>
 
 
-#define SEM_PRODUCER_FNAME "/producer"
+#define SEM_PRODUCER_FNAME "/work"
 #define SEM_CONSUMER_FNAME "/consumer"
 #define SEM_FULL_FNAME "/full"
 #define SEM_EMPTY_FNAME "/empty"
@@ -49,6 +49,7 @@ void add_prod(buffer * c);
 void rem_prod(buffer * c);
 
 int keypress(unsigned char echo);
+int gen_key();
 
 int circ_bbuf_push(buffer * c, Message message);
 Message circ_bbuf_pop(buffer *c, Message message);

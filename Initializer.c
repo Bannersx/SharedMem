@@ -34,10 +34,7 @@ void show_info(int size, int pid, char * name, void *addr){
     printf("\033[22;32m\n*-----------------------------End of summary---------------------------------*\n\n");
 }
 
-int gen_key(){
-    int r = (rand() % (6 + 1 - 0)) + 0;
-    return r;
-}
+
 
 
 int main(int argc, char *argv[]){
@@ -101,7 +98,6 @@ int main(int argc, char *argv[]){
     printf("\n|--> Releasing unused semaphores with the names: %s, %s, %s, %s. If there are any...\n", SEM_PRODUCER_FNAME, SEM_CONSUMER_FNAME, SEM_EMPTY_FNAME, SEM_FULL_FNAME);
     
     sem_unlink(SEM_PRODUCER_FNAME);
-    sem_unlink(SEM_CONSUMER_FNAME);
     sem_unlink(SEM_EMPTY_FNAME);
     sem_unlink(SEM_FULL_FNAME);
     
@@ -119,18 +115,10 @@ int main(int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
-    //Creating the consumer semaphore
-    printf("\n|--> Creating the semaphore: %s...\n", SEM_CONSUMER_FNAME);
-    sem_t * sem_cons = sem_open(SEM_CONSUMER_FNAME, O_CREAT, 0660,0);
-    //Checking if the semaphore was created succesfully
-    if (sem_cons == SEM_FAILED){
-        perror("sem_open/consumer");
-        exit(EXIT_FAILURE);
-    }
     
     //Creating the full semaphore: This is used to count the number of full items in the buffer
     printf("\n|--> Creating the semaphore: %s...\n", SEM_FULL_FNAME);
-    sem_t * sem_full = sem_open(SEM_FULL_FNAME, O_CREAT, 0660, 2);
+    sem_t * sem_full = sem_open(SEM_FULL_FNAME, O_CREAT, 0660,1);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
         perror("sem_open/producer");
@@ -139,9 +127,9 @@ int main(int argc, char *argv[]){
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
     printf("\n|--> Creating the semaphore: %s...\n", SEM_EMPTY_FNAME);
-    sem_t * sem_empty = sem_open(SEM_CONSUMER_FNAME, O_CREAT, 0660,temp_size);
+    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, O_CREAT, 0660,temp_size);
     //Checking if the semaphore was created succesfully
-    if (sem_cons == SEM_FAILED){
+    if (sem_empty == SEM_FAILED){
         perror("sem_open/consumer");
         exit(EXIT_FAILURE);
     }
@@ -166,7 +154,6 @@ int main(int argc, char *argv[]){
 
     /*---------- Cleaning up to end process----------*/
     sem_close(sem_prod);
-    sem_close(sem_cons);
     sem_close(sem_full);
     sem_close(sem_empty);
     munmap(buff,sizeof(buffer));
