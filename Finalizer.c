@@ -52,6 +52,15 @@ int main (int argc, char *argv[]){
         exit(EXIT_FAILURE);
     }
 
+    //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
+    printf("\n|--> Creating the semaphore: %s...\n", SEM_EMPTY_FNAME);
+    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME,0);
+    //Checking if the semaphore was created succesfully
+    if (sem_empty == SEM_FAILED){
+        perror("sem_open/consumer");
+        exit(EXIT_FAILURE);
+    }
+
     int fd = shm_open(shm_name, O_RDWR,0666);
     if (fd <0){
         perror("shm_open()");
@@ -71,6 +80,7 @@ int main (int argc, char *argv[]){
     buff->work = false;
     sem_post(sem_prod);
     sem_post(sem_full);
+    sem_post(sem_empty);
     
     sleep(1); //Giving the programs time to finish what they are doing
     

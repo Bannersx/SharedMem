@@ -127,7 +127,7 @@ int main(int argc, char *argv[]){
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
     printf("\n|--> Creating the semaphore: %s...\n", SEM_EMPTY_FNAME);
-    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, O_CREAT, 0660,temp_size);
+    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, O_CREAT, 0660,(temp_size));
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
         perror("sem_open/consumer");

@@ -104,11 +104,7 @@ int main (int argc, char *argv[]){
             buff->wait_time += finish - start ;
 
             printf("\n   Semaphore is available now...\n");
-            int fd = shm_open(shm_name, O_RDWR,0666);
-            if (fd <0){
-                perror("shm_open()");
-                return EXIT_FAILURE;
-            }
+           
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
@@ -130,6 +126,8 @@ int main (int argc, char *argv[]){
             time_t start = time(NULL);
             //sleep(wait_time);
 
+            Message temp = create_message(prod_pid, gen_key()); 
+            
 
             sem_wait(sem_empty); //If full value is 0 there are no messages to be read so we wait.
             printf("\n   Waiting for semaphore to be available\n");
@@ -140,15 +138,10 @@ int main (int argc, char *argv[]){
             buff->wait_time += finish - start ;
 
             printf("\n   Semaphore is available now...\n");
-            int fd = shm_open(shm_name, O_RDWR,0666);
-            if (fd <0){
-                perror("shm_open()");
-                return EXIT_FAILURE;
-            }
+            
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
-                Message temp = create_message(prod_pid, gen_key()); 
                 print_message(temp);
                 circ_bbuf_push(buff,temp);
                 

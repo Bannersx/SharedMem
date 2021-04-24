@@ -110,12 +110,13 @@ int main (int argc, char *argv[]){
             buff->wait_time += finish - start ;
 
             printf("\n   Semaphore is available now...\n");
+            /*
             int fd = shm_open(shm_name, O_RDWR,0666);
             if (fd <0){
                 perror("shm_open()");
                 return EXIT_FAILURE;
             }
-            
+            */
             sem_post(sem_prod); //Releasing the mutex to allow a producer to produce
             sem_post(sem_empty); //Increasing the number of empty elements in the buffer
 
@@ -150,11 +151,13 @@ int main (int argc, char *argv[]){
             buff->wait_time += finish - start ;
 
             printf("\n   Semaphore is available now...\n");
+            /*
             int fd = shm_open(shm_name, O_RDWR,0666);
             if (fd <0){
                 perror("shm_open()");
                 return EXIT_FAILURE;
             }
+            */
             /*
             void * addr = 
                 (buffer *) mmap(0, sizeof(buffer), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
