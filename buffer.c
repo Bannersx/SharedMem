@@ -18,6 +18,9 @@ int circ_bbuf_push(buffer * c, Message message)
 {
     int next;
 
+    printf("\n      \033[22;34mCurrent number of running producers: \033[22;0m%d\n",c->cur_prod);
+    printf("\n      \033[22;34mMessage inserted in index: \033[22;0m%d\n", c->head);
+    
     next = c->head + 1;  // next is where head will point to after this write.
     if (next >= c->max_size)
         next = 0;
@@ -50,9 +53,9 @@ Message circ_bbuf_pop(buffer *c, Message data)
 //Function to show messages when consumming them.
 void print_message(Message message){
 
-    printf(" \033[22;32m    *-----------------------Displaying Message------------------------------*\n\n");
+    printf("\n \033[22;32m    *-----------------------Displaying Message------------------------------*\n\n");
     printf("\033[22;33m        The process ID is: \033[22;37m%d\n",message.pid);
-    printf("\033[22;33m        Shared Memory stored as: \033[22;37m%d\n",message.key);
+    printf("\033[22;33m        Special key number is: \033[22;37m%d\n",message.key);
     printf("\n \033[22;32m    *-------------------------End of Message-------------------------------*\033[22;0m\n");
     
 }
@@ -152,4 +155,15 @@ int gen_key(){
     srand((unsigned) time(&t));
     int r = (rand() % (6 + 1 - 0)) + 0;
     return r;
+}
+
+//Function to print the consumers info after reading a message
+void print_cons_info(buffer *  c){
+    if (c->tail ==0){
+        printf("\n      \033[22;34mCurrent number of running consumers: \033[22;0m%d\n", c->cur_cons);
+        printf("\n      \033[22;34mReading message in the index: \033[22;0m%d\n", c->max_size);
+    }else{
+        printf("\n      \033[22;34mCurrent number of running consumers: \033[22;0m%d\n", c->cur_cons);
+        printf("\n      \033[22;34mReading message in the index: \033[22;0m%d\n", c->tail-1);
+    }
 }

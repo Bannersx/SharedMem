@@ -9,7 +9,7 @@
 
 
 int main (int argc, char *argv[]){
-
+    
     
     /*--- Checking if the number of arguments is correct ---*/
     if (argc != 3){
@@ -32,10 +32,11 @@ int main (int argc, char *argv[]){
             
         }
     } 
+    //shm_unlink(shm_name);
 
 
      /*---Opening all the needed semaphores inside the process---*/
-    printf("\n  -> Opening the semaphore: %s...\n", SEM_PRODUCER_FNAME);
+    printf("\n  -> Dealing with the semaphore: %s...\n", SEM_PRODUCER_FNAME);
     sem_t * sem_prod = sem_open(SEM_PRODUCER_FNAME, 0);
     //Checking if the semaphore was created succesfully
     if (sem_prod == SEM_FAILED){
@@ -44,7 +45,7 @@ int main (int argc, char *argv[]){
     }
 
     //Creating the full semaphore: This is used to count the number of full items in the buffer
-    printf("\n  -> Opening the semaphore: %s...\n", SEM_FULL_FNAME);
+    printf("\n  -> Dealing with the semaphore: %s...\n", SEM_FULL_FNAME);
     sem_t * sem_full = sem_open(SEM_FULL_FNAME, 0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
@@ -53,7 +54,7 @@ int main (int argc, char *argv[]){
     }
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
-    printf("\n|--> Creating the semaphore: %s...\n", SEM_EMPTY_FNAME);
+    printf("\n|--> Dealing with the semaphore: %s...\n", SEM_EMPTY_FNAME);
     sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME,0);
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
@@ -76,19 +77,34 @@ int main (int argc, char *argv[]){
     
 
 
-    //Signaling to stop working
-    buff->work = false;
-    sem_post(sem_prod);
-    sem_post(sem_full);
-    sem_post(sem_empty);
-    
-    sleep(1); //Giving the programs time to finish what they are doing
-    
     /*-------------------Statistics------------------------*/
 
 
     print_stats(buff);
+    
+    
+    
 
+    //Signaling to stop working
+    buff->work = false;
+    while (buff->cur_prod > 0 || buff->cur_cons > 0)
+    {
+        if (buff->cur_prod == 0){
+            sem_post(sem_prod);
+            sem_post(sem_full);
+        }else if( buff->cur_cons == 0) {
+            sem_post(sem_prod);
+            sem_post(sem_empty);
+        }else{
+            sem_post(sem_prod);
+            sem_post(sem_full);
+            sem_post(sem_empty);
+
+        }
+    }
+    
+    sleep(1); //Giving the programs time to finish what they are doing
+    
 
     /*------Closing Everything----------*/
     munmap(addr, sizeof(buffer));
@@ -97,6 +113,9 @@ int main (int argc, char *argv[]){
     sem_unlink(SEM_CONSUMER_FNAME);
     sem_unlink(SEM_FULL_FNAME);
     sem_unlink(SEM_EMPTY_FNAME);
+    sem_close(sem_prod);
+    sem_close(sem_full);
+    sem_close(sem_empty);
     return EXIT_SUCCESS;
 }
 

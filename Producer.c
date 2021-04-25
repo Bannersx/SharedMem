@@ -15,7 +15,7 @@ int main (int argc, char *argv[]){
     pid_t prod_pid = getpid();
 
     /*--- Checking if the number of arguments is correct ---*/
-    if (argc != 5){
+    if (argc != 7){
         printf("\nusage: -n [name of buffer] -m [a-> automatic|m-> manual]\nPlease use the full arguments\n");
         return -1;
     }
@@ -24,12 +24,22 @@ int main (int argc, char *argv[]){
     int count;
     char * shm_name;
     char * mode;
+    char * mean_time;
     for (count = 1; count < argc ; count++){
         switch (argv[count][1]) {
             case 'n': shm_name = argv[count+1];
             case 'm': mode = argv[count+1];
+            case 't': mean_time = argv[count+1];
         }
     } 
+
+    /*----------------------Average mean wait time------------------------------------------*/
+    int temp_wait;
+    char str[4];
+    strcpy(str, mean_time);
+    temp_wait = atoi(str);
+
+  
 /*------------------------Working on the semaphores---------------------------*/
 
 
@@ -88,75 +98,89 @@ int main (int argc, char *argv[]){
     if (mode[0] == 'm'){
 
         while (buff->work){
-            printf("\n      Press space to produce a message");
-            while(keypress(0)!= ' ');
-            printf("\n \033[22;36m*--------------------Starting a new Production cycle------------------------*\033[22;0m");
-            time_t start = time(NULL);
+            
+            printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
+            time_t start = time(NULL);  //Taking the start time
             //sleep(wait_time);
 
+            printf("\n      Looking for available space in the buffer...\n");
+            sem_wait(sem_empty); //If empty is 0 the buffer is full, we gotta wait.
+            printf("\n      Available space found!!\n");
+            
+            printf("\n      Waiting for buffer to be available\n");
+            sem_wait(sem_prod); //We can write once the mutex is unlocked.
+            printf("\n      Buffer is available now...\n");
 
-            sem_wait(sem_empty); //If full value is 0 there are no messages to be read so we wait.
-            printf("\n   Waiting for semaphore to be available\n");
-            sem_wait(sem_prod);//We can read once someone has produced messages.
+            printf("\n      \033[22;33mPress space to read a message\033[22;0m\n"); //Waiting for the keypress to continue
+            while(keypress(0)!= ' ');   //Detecting the keypress
+            
+            time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            time_t finish = time(NULL);
+            buff->wait_time += finish - start ;     //Adding the wait time to buffer statistics
 
-            buff->wait_time += finish - start ;
-
-            printf("\n   Semaphore is available now...\n");
+            
            
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
-                Message temp = create_message(prod_pid, gen_key()); 
-                print_message(temp);
-                circ_bbuf_push(buff,temp);
+                Message temp = create_message(prod_pid, gen_key());     //Creating a message with the process id and a random key.
+                print_message(temp);        //Displaying the message before inserting it
+                circ_bbuf_push(buff,temp);      //Pushing the message into the buffer
                 
             }
             
-            sem_post(sem_prod); //Releasing the mutex to allow a producer to produce
-            sem_post(sem_full); //Increasing the number of empty elements in the buffer
+            sem_post(sem_prod); //Releasing the mutex to allow a other processes to access memory
+            sem_post(sem_full); //Increasing the number of full elements in the buffer
 
 
         }
     }else{
         while (buff->work){
             
-            printf("\n \033[22;36m*--------------------Starting a new Production cycle------------------------*\033[22;0m");
+            printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
             time_t start = time(NULL);
             //sleep(wait_time);
 
-            Message temp = create_message(prod_pid, gen_key()); 
+            Message temp = create_message(prod_pid, gen_key()); //Creating a message with the process id and a random key.
             
 
-            sem_wait(sem_empty); //If full value is 0 there are no messages to be read so we wait.
-            printf("\n   Waiting for semaphore to be available\n");
-            sem_wait(sem_prod);//opening semaphore
+            sem_wait(sem_empty); //If empty is 0 the buffer is full, we gotta wait.
+            printf("\n      Waiting for Buffer to be available\n");
+            sem_wait(sem_prod);//We can write once the mutex is unlocked.
+            printf("\n      Buffer is available now...\n");
 
             time_t finish = time(NULL);
 
             buff->wait_time += finish - start ;
-
-            printf("\n   Semaphore is available now...\n");
             
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
-                print_message(temp);
-                circ_bbuf_push(buff,temp);
+                print_message(temp);        //Displaying the message before inserting it
+                circ_bbuf_push(buff,temp);  //Pushing the message into the buffer
                 
             }
             
-            sem_post(sem_prod); //Releasing the mutex to allow a producer to produce
-            sem_post(sem_full); //Increasing the number of empty elements in the buffer
+            sem_post(sem_prod); //Releasing the mutex to allow a other processes to access memory
+            sem_post(sem_full); //Increasing the number of full elements in the buffer
 
             
         }
 
     }
+    
+    printf("\n      \033[22;31mThis producer has been signaled to end\n");
+
+    rem_prod(buff);
 /*-------Closing things nicely-------*/
+    printf("\n      \033[22;0mMaking things nice and tidy before closing...\n");
+
+    sem_close(sem_prod);
+    sem_close(sem_full);
+    sem_close(sem_empty);
+    printf("\n      Producer pid: %d is now closing\n", prod_pid);
     munmap(addr, sizeof(buffer));
     close(fd);
-    //shm_unlink(NAME);
+    printf("\n |*---------------------------End of Producer---------------------------------*|\n");
     return EXIT_SUCCESS;
 }

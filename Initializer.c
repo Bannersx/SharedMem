@@ -64,9 +64,9 @@ int main(int argc, char *argv[]){
         }
     } 
     
-/*------------------CASTING STR SIZE TO INT------------------------*/    
+/*------------------Size of the buffer------------------------*/    
     int temp_size;
-    char str[2];
+    char str[4];
     strcpy(str, size);
     temp_size = atoi(str);
     
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]){
     
     //Creating the full semaphore: This is used to count the number of full items in the buffer
     printf("\n|--> Creating the semaphore: %s...\n", SEM_FULL_FNAME);
-    sem_t * sem_full = sem_open(SEM_FULL_FNAME, O_CREAT, 0660,1);
+    sem_t * sem_full = sem_open(SEM_FULL_FNAME, O_CREAT, 0660,0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
         perror("sem_open/producer");
@@ -143,11 +143,6 @@ int main(int argc, char *argv[]){
     buff->max_size = temp_size;
     buff->work = true;
 
-
-    Message trymess = create_message(init_pid, gen_key());
-    Message trymess2 = create_message(init_pid, 3);
-
-    circ_bbuf_push(buff,trymess);
     
     /*---Displaying the information*/
     show_info(buff->max_size, init_pid, shm_name, addr);
