@@ -12,11 +12,23 @@
 
 
 
-void show_info(int size, int pid, char * name, void *addr){
-    printf("The process ID is: %d\n",pid);
-    printf("Shared Memory stored as: %s\n",name);
-    printf("Receiver mapped address: %p\n",addr);
-    printf("The size of the buffer is: %d\n",size);
+//Function to display a producer statistics
+void print_cons_stats(pid_t pid, int messages, float wait, float blocked, float kernel, bool key){
+    char * reason;
+    if(key){
+        reason = "This consumer stopped because the \n                 Process ID module 6 was equal to the key";
+    }else{
+        reason = "The consumer was signaled by the\n                   finalizer to end";
+    }
+
+    printf("\n          |*--------------- Here are the Statistics ----------------*|\n");
+    printf("\n                -> Proccess ID: %d\n", pid);
+    printf("                -> Total number of read messages: %d\n", messages);
+    printf("                -> Amount of waited time: %0.4fs\n", wait);
+    printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
+    printf("                -> Amount of time in kernel: %0.4fs\n", kernel);
+    printf("                -> Reason of halt: %s\n",reason);
+    printf("\n          |*--------------------End of Statistics-------------------*|\n");
 }
 int main (int argc, char *argv[]){
 
@@ -46,6 +58,14 @@ int main (int argc, char *argv[]){
     char str[4];
     strcpy(str, mean_time);
     temp_wait = atoi(str);
+
+/*----------------------Consumer Statistics------------------------------*/
+
+    float total_wait_time = 0;
+    float total_block_time = 0;
+    float total_kernel_time = 0;
+    int all_time_messages = 0;
+    bool key_eliminated = false;
 
 
 /*---------------------Working on the semaphores------------------------*/
@@ -135,6 +155,7 @@ int main (int argc, char *argv[]){
                 
                 if (temp.key == temp.pid || temp.key == (cons_pid % 6)){ //checking for the special condition to stop the process
 
+                    key_eliminated = true;
                     printf("\n  |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
                     rem_key_cons(buff);
                     break;
@@ -145,7 +166,7 @@ int main (int argc, char *argv[]){
     }else{
         while (buff->work){
             
-            printf("\n \033[22;36m *-------------------------------------------------------------------------------*\n *-------------------------Starting a new Consumption cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
+            printf("\n \033[22;36m *------------------------------------------------------------------------------*\n *-------------------------Starting a new Consumption cycle----------------------*\n *-------------------------------------------------------------------------------*\033[22;0m\n");
             time_t start = time(NULL);
             //sleep(wait_time);
 
@@ -169,6 +190,7 @@ int main (int argc, char *argv[]){
                 print_cons_info(buff);
                 print_message(temp);
                 if (temp.key == temp.pid || temp.key == (cons_pid % 6)){
+                    key_eliminated = true;
                     printf("\n  |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
                     rem_key_cons(buff);
                     break;
@@ -193,6 +215,7 @@ int main (int argc, char *argv[]){
     sem_close(sem_full);
     sem_close(sem_empty);
     printf("\n      Consumer pid: %d is now closing\n", cons_pid);
+    print_cons_stats(cons_pid, all_time_messages,total_wait_time, total_block_time, total_kernel_time, key_eliminated);
     munmap(addr, sizeof(buffer));
     close(fd);
     printf("\n |*---------------------------End of Consumer---------------------------------*|\n");

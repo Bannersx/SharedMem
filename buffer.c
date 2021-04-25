@@ -46,7 +46,9 @@ Message circ_bbuf_pop(buffer *c, Message data)
 
     data = c->message[c->tail];  // Read data and then move
     c->tail = next;              // tail to next offset.
-    c->current_size -=1;
+    if(c->current_size > 0){
+        c->current_size -=1;
+    }
     return data;  // return success to indicate successful push.
 }
 
@@ -97,14 +99,15 @@ Message create_message(pid_t pid, int key){
 
 //Function to show the final stats of the buffer.
 void print_stats(buffer * c){
-    printf("    |*------------- Here are the Statistics -----------------*|\n");
-    printf("\n       -> All time messages: %d\n", c->tot_mess);
-    printf("       -> Messages left in the buffer: %d\n", c->current_size);
-    printf("       -> Total number of Producer processes: %d\n", c->tot_prod);
-    printf("       -> Total number of Consumer processes: %d\n", c->tot_cons);
-    printf("       -> Number of consumer closed by key: %d\n", c->cons_key_elm);
-    printf("       -> Amount of time waited: %0.4fs\n", c->wait_time);
-    printf("\n    |*----------------------End of Statistics-----------------*|\n");
+    printf("        |*---------------- Here are the Statistics ----------------*|\n");
+    printf("\n            -> All time messages: %d\n", c->tot_mess);
+    printf("            -> Messages left in the buffer: %d\n", c->current_size);
+    printf("            -> Total number of Producer processes: %d\n", c->tot_prod);
+    printf("            -> Total number of Consumer processes: %d\n", c->tot_cons);
+    printf("            -> Number of consumer closed by key: %d\n", c->cons_key_elm);
+    printf("            -> Amount of time waited: %0.4fs\n", c->wait_time);
+    printf("            -> Amount of time blocked by semaphores: %0.4fs\n", c->blocked_time);
+    printf("\n        |*--------------------End of Statistics--------------------*|\n");
 }
 
 
@@ -161,9 +164,11 @@ int gen_key(){
 void print_cons_info(buffer *  c){
     if (c->tail ==0){
         printf("\n      \033[22;34mCurrent number of running consumers: \033[22;0m%d\n", c->cur_cons);
+        printf("\n      \033[22;34mCurrent number of running producers: \033[22;0m%d\n",c->cur_prod);
         printf("\n      \033[22;34mReading message in the index: \033[22;0m%d\n", c->max_size);
     }else{
         printf("\n      \033[22;34mCurrent number of running consumers: \033[22;0m%d\n", c->cur_cons);
+        printf("\n      \033[22;34mCurrent number of running producers: \033[22;0m%d\n",c->cur_prod);
         printf("\n      \033[22;34mReading message in the index: \033[22;0m%d\n", c->tail-1);
     }
 }

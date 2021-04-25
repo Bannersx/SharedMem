@@ -39,6 +39,7 @@ typedef struct buffer
 
     //Statistics
     float wait_time;
+    float blocked_time;
     int cons_key_elm;
 }buffer;
 

@@ -17,7 +17,7 @@ int main (int argc, char *argv[]){
         return -1;
     }
 
-    printf("\033[22;32m*-------------------Working on the Finalizer Process----------------------*\n\n");
+    printf("\033[22;32m*-------------------Working on the Finalizer Process----------------------*\033[22;37m\n\n");
 
 
     //printf("The process ID is: %d\n",pid);
@@ -54,7 +54,7 @@ int main (int argc, char *argv[]){
     }
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
-    printf("\n|--> Dealing with the semaphore: %s...\n", SEM_EMPTY_FNAME);
+    printf("\n  -> Dealing with the semaphore: %s...\n", SEM_EMPTY_FNAME);
     sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME,0);
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
@@ -70,20 +70,13 @@ int main (int argc, char *argv[]){
 
     void * addr = 
         (buffer *) mmap(0, sizeof(buffer), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    printf("    \033[22;33mreceiver mapped address: \033[22;37m%p\n",addr);
+    printf("\n    \033[22;33mReceiver mapped address: \033[22;37m%p\n",addr);
 
     buffer * buff = addr;
-    //shm_unlink(NAME);
-    
-
-
-    /*-------------------Statistics------------------------*/
-
-
-    print_stats(buff);
+    //shm_unlink(NAME);    
     
     
-    
+    printf("\n    \033[22;33mGathering information.... \033[22;37m\n\n");
 
     //Signaling to stop working
     buff->work = false;
@@ -102,6 +95,12 @@ int main (int argc, char *argv[]){
 
         }
     }
+    sleep(3); //Givint time to update information
+
+    /*-------------------Statistics------------------------*/
+    print_stats(buff);
+
+    
     
     sleep(1); //Giving the programs time to finish what they are doing
     
