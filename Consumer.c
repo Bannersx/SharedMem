@@ -191,7 +191,7 @@ int main (int argc, char *argv[]){
                 print_message(temp);
                 if (temp.key == temp.pid || temp.key == (cons_pid % 6)){
                     key_eliminated = true;
-                    printf("\n  |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
+                    printf("\n  |--> Special key condition is met. \n  |--> Process %d is now finalizing.\n",cons_pid);
                     rem_key_cons(buff);
                     break;
                 }

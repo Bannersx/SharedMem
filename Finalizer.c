@@ -13,7 +13,7 @@ int main (int argc, char *argv[]){
     
     /*--- Checking if the number of arguments is correct ---*/
     if (argc != 3){
-        printf("usage: -n [name of buffer] -s [size of buffer]\nPlease use the full arguments\n");
+        printf("usage: -n [name of buffer] \nPlease use the full arguments\n");
         return -1;
     }
 
@@ -73,7 +73,7 @@ int main (int argc, char *argv[]){
     printf("\n    \033[22;33mReceiver mapped address: \033[22;37m%p\n",addr);
 
     buffer * buff = addr;
-    //shm_unlink(NAME);    
+    //shm_unlink(shm_name);    
     
     
     printf("\n    \033[22;33mGathering information.... \033[22;37m\n\n");

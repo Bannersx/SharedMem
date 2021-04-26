@@ -16,6 +16,7 @@ struct buffer ;
 typedef struct Message{
     int pid;
     int key;
+    char date_time[25]; 
 }Message;
 
 typedef struct buffer
@@ -54,7 +55,7 @@ int gen_key();
 
 int circ_bbuf_push(buffer * c, Message message);
 Message circ_bbuf_pop(buffer *c, Message message);
-Message create_message(pid_t pid, int key);
+Message create_message(pid_t pid, int key, char * date_time);
 
 void print_cons_info(buffer * c);
 void print_message(Message message);

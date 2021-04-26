@@ -58,6 +58,7 @@ void print_message(Message message){
     printf("\n \033[22;32m    *-----------------------Displaying Message------------------------------*\n\n");
     printf("\033[22;33m        The process ID is: \033[22;37m%d\n",message.pid);
     printf("\033[22;33m        Special key number is: \033[22;37m%d\n",message.key);
+    printf("\033[22;33m        Date and time of creation: \033[22;37m%s\n",message.date_time);
     printf("\n \033[22;32m    *-------------------------End of Message-------------------------------*\033[22;0m\n");
     
 }
@@ -90,10 +91,11 @@ void rem_prod(buffer * c){
 }
 
 //Function to create a message. 
-Message create_message(pid_t pid, int key){
+Message create_message(pid_t pid, int key, char * date_time){
     Message temp;
     temp.pid = pid;
     temp.key = key;
+    strcpy(temp.date_time,date_time);
     return temp;
 }
 

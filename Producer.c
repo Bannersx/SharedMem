@@ -19,7 +19,7 @@ void print_prod_stats(pid_t pid, int messages, float wait, float blocked, float 
     printf("                -> Total number of produced messages: %d\n", messages);
     printf("                -> Amount of waited time: %0.4fs\n", wait);
     printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
-    printf("                -> Amount of time in kernel: %0.4fs\n", kernel);
+    printf("                -> Amount of time in kernel: %0.9fs\n", kernel);
     printf("\n          |*--------------------End of Statistics-------------------*|\n");
 }
 
@@ -124,20 +124,23 @@ int main (int argc, char *argv[]){
             
             printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle------------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
             time_t start = time(NULL);  //Taking the start time
+            
+            
+            int cycle_wait_time = exponencial(temp_wait);
 
-            //int cycle_wait_time = exponencial(temp_wait);
-            //total_wait_time = buff->wait_time += cycle_wait_time;
-            //sleep(wait_time);
+            printf("\n      Wait time for the cycle: %d\n", cycle_wait_time);
+            total_wait_time = buff->wait_time += cycle_wait_time;
+            sleep(cycle_wait_time);
 
             printf("\n      Looking for available space in the buffer...\n");
             sem_wait(sem_empty); //If empty is 0 the buffer is full, we gotta wait.
-            printf("\n      Available space found!!\n");
+            printf("\n      Space found!!\n");
             
             printf("\n      Waiting for buffer to be available\n");
             sem_wait(sem_prod); //We can write once the mutex is unlocked.
             printf("\n      Buffer is available now...\n");
 
-            printf("\n      \033[22;33mPress space to read a message\033[22;0m\n"); //Waiting for the keypress to continue
+            printf("\n      \033[22;33mPress space to produce a message\033[22;0m\n"); //Waiting for the keypress to continue
             while(keypress(0)!= ' ');   //Detecting the keypress
             
             time_t finish = time(NULL);     //Taking the time after we finish waiting
@@ -149,8 +152,9 @@ int main (int argc, char *argv[]){
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
-                Message temp = create_message(prod_pid, gen_key());     //Creating a message with the process id and a random key.
+                Message temp = create_message(prod_pid, gen_key(),get_time());     //Creating a message with the process id and a random key.
                 print_message(temp);        //Displaying the message before inserting it
+                printf("\n\033[22;34m      Message inserted succesfully!\n");
                 circ_bbuf_push(buff,temp);      //Pushing the message into the buffer
                 all_time_messages += 1;
             }
@@ -167,17 +171,19 @@ int main (int argc, char *argv[]){
         while (buff->work){
             
             printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
-            ///int cycle_wait_time = exponencial(temp_wait);
-            //total_wait_time = buff->wait_time += cycle_wait_time;
-            //sleep(wait_time);
+            int cycle_wait_time = exponencial(temp_wait);
+            total_wait_time = buff->wait_time += cycle_wait_time;
+            printf("\n      Wait time for the cycle: %d\n", cycle_wait_time);
+            sleep(cycle_wait_time);
             time_t start = time(NULL);
             
-            Message temp = create_message(prod_pid, gen_key()); //Creating a message with the process id and a random key.
+            Message temp = create_message(prod_pid, gen_key(),get_time()); //Creating a message with the process id and a random key.
             
-
+            printf("\n      Looking for available space in the buffer...\n");
             sem_wait(sem_empty); //If empty is 0 the buffer is full, we gotta wait.
+            printf("\n      Space found!!\n");
             printf("\n      Waiting for Buffer to be available\n");
-            sem_wait(sem_prod);//We can write once the mutex is unlocked.
+            sem_wait(sem_prod);//We can write once the mutex is unlocked. Synchronization!
             printf("\n      Buffer is available now...\n");
 
             time_t finish = time(NULL);
@@ -187,7 +193,9 @@ int main (int argc, char *argv[]){
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
+                
                 print_message(temp);        //Displaying the message before inserting it
+                printf("\n\033[22;34m      Message inserted succesfully!\n");
                 circ_bbuf_push(buff,temp);  //Pushing the message into the buffer
                 all_time_messages += 1;
             }

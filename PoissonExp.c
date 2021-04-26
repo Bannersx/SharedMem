@@ -1,41 +1,28 @@
 #include <stdio.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
-
+#include <time.h>
+char * get_time(void) {
+    time_t t = time(NULL);
+    struct tm *tm = localtime(&t);
+    //printf("%s", asctime(tm));
+    return asctime(tm);
+}
 
 int poisson(int media)
 {
-    const gsl_rng_type * T;
-    gsl_rng * r;
-
-    gsl_rng_env_setup();
-    T = gsl_rng_default;
-    r = gsl_rng_alloc (T);
-    int i = gsl_ran_poisson(r, media);
-    printf("Poisson: %d\n", i);
-    gsl_rng_free(r);
-    return i;
+    gsl_rng *rng = gsl_rng_alloc(gsl_rng_taus2);
+    gsl_rng_set(rng, time(0)); // Seed with time
+    int result = gsl_ran_poisson(rng, media);
+    gsl_rng_free(rng);
+    return result;
 }
-int exponencial(double media)
+double exponencial(double media)
 {
-    const gsl_rng_type * T;
-    gsl_rng * r;
+    gsl_rng *rng = gsl_rng_alloc(gsl_rng_taus2);
+    gsl_rng_set(rng, time(0)); // Seed with time
+    double result = gsl_ran_exponential(rng, media);
+    gsl_rng_free(rng);
 
-    gsl_rng_env_setup();
-    T = gsl_rng_default;
-    r = gsl_rng_alloc (T);
-    printf("Exponencial: %f\n", gsl_ran_exponential(r, media));
-    printf("%f\n", gsl_ran_exponential(r, media));
-    printf("%f\n", gsl_ran_exponential(r, media));
-    printf("%f\n", gsl_ran_exponential(r, media));
-    printf("%f\n", gsl_ran_exponential(r, media));
-    printf("%f\n", gsl_ran_exponential(r, media));
-
-    gsl_rng_free(r);
+    return result;
 }
-/*
-int main(){
-    poisson(5);
-    exponencial(5);
-}
-*/
