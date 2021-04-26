@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include <time.h>
 #include <string.h>
+#include "PoissonExp.c"
 
 
 
@@ -26,7 +27,7 @@ void print_cons_stats(pid_t pid, int messages, float wait, float blocked, float 
     printf("                -> Total number of read messages: %d\n", messages);
     printf("                -> Amount of waited time: %0.4fs\n", wait);
     printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
-    printf("                -> Amount of time in kernel: %0.4fs\n", kernel);
+    printf("                -> Amount of time in kernel: %.3f\n", kernel);
     printf("                -> Reason of halt: %s\n",reason);
     printf("\n          |*--------------------End of Statistics-------------------*|\n");
 }
@@ -63,7 +64,7 @@ int main (int argc, char *argv[]){
 
     float total_wait_time = 0;
     float total_block_time = 0;
-    float total_kernel_time = 0;
+    double total_kernel_time = 0;
     int all_time_messages = 0;
     bool key_eliminated = false;
 
@@ -125,8 +126,14 @@ int main (int argc, char *argv[]){
         while (buff->work){
             
             printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Consumption cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
+        
+
+            int cycle_wait_time = poisson(temp_wait);   //RNGeesus take the wheel again!
+            printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
+            total_wait_time = buff->wait_time += cycle_wait_time; //updating the total wait time of the producer and buffer.
+            sleep(cycle_wait_time);
+
             time_t start = time(NULL);
-            //sleep(wait_time);
 
             printf("\n      Looking for messages....\n");
             sem_wait(sem_full); //If full is 0 there are no messages to be read, we gotta wait.
@@ -140,23 +147,35 @@ int main (int argc, char *argv[]){
 
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            buff->wait_time += finish - start ;     //Adding the wait time to buffer statistics
+            buff->wait_time = total_block_time += finish - start ;     //Adding the wait time to buffer statistics
 
-            
+            //----------------Trying to measure user/wall time-----------------//
+
+            struct timespec begin, end; 
+            clock_gettime(CLOCK_REALTIME, &begin);
+
             Message temp = circ_bbuf_pop(buff,temp);    //Popping a message from the buffer
+            
+
+            clock_gettime(CLOCK_REALTIME, &end);
+            long seconds = end.tv_sec - begin.tv_sec;
+            long nanoseconds = end.tv_nsec - begin.tv_nsec;
+            double elapsed = seconds + nanoseconds*1e-9;
 
             sem_post(sem_prod);     //Releasing the mutex to allow a producer to produce
             sem_post(sem_empty);    //Increasing the number of empty elements in the buffer
             
             if(buff->work){        //If we are allowed to work, we proceed with consuming a message.
                 
+                all_time_messages += 1;
+                total_kernel_time += elapsed;
                 print_cons_info(buff);
                 print_message(temp);    //Consuming the message
                 
                 if (temp.key == temp.pid || temp.key == (cons_pid % 6)){ //checking for the special condition to stop the process
 
                     key_eliminated = true;
-                    printf("\n  |--> Special key condition is met. \n |--> Process %d is now finalizing.\n",cons_pid);
+                    printf("\n   -> Special key condition is met. \n   -> Process %d is now finalizing.\n",cons_pid);
                     rem_key_cons(buff);
                     break;
                 }
@@ -167,8 +186,12 @@ int main (int argc, char *argv[]){
         while (buff->work){
             
             printf("\n \033[22;36m *------------------------------------------------------------------------------*\n *-------------------------Starting a new Consumption cycle----------------------*\n *-------------------------------------------------------------------------------*\033[22;0m\n");
-            time_t start = time(NULL);
-            //sleep(wait_time);
+            
+            int cycle_wait_time = poisson(temp_wait);   //RNGeesus take the wheel again!
+            printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
+            total_wait_time = buff->wait_time += cycle_wait_time; //updating the total wait time of the producer and buffer.
+                        
+            time_t start = time(NULL);  //Start time to meassure semaphore blockage.
 
             printf("\n      Looking for messages....\n");
             sem_wait(sem_full); //If full value is 0 there are no messages to be read so we wait.
@@ -178,7 +201,7 @@ int main (int argc, char *argv[]){
             printf("\n      Buffer is available now...\n");
             time_t finish = time(NULL);
 
-            buff->wait_time += finish - start ;
+            buff->wait_time = total_block_time += finish - start ;
             Message temp = circ_bbuf_pop(buff,temp);
            
                 
@@ -187,11 +210,12 @@ int main (int argc, char *argv[]){
             sem_post(sem_prod);
             sem_post(sem_empty);
             if(buff->work){
+                all_time_messages += 1;
                 print_cons_info(buff);
                 print_message(temp);
                 if (temp.key == temp.pid || temp.key == (cons_pid % 6)){
                     key_eliminated = true;
-                    printf("\n  |--> Special key condition is met. \n  |--> Process %d is now finalizing.\n",cons_pid);
+                    printf("\n   -> Special key condition is met. \n   -> Process %d is now finalizing.\n",cons_pid);
                     rem_key_cons(buff);
                     break;
                 }

@@ -71,12 +71,13 @@ void add_cons(buffer * c){
 
 //Utility function to keep track of consumer statistics on closure.
 void rem_cons(buffer * c){
-    c->cur_cons -=1;
+    if (c->cur_cons >0){
+        c->cur_cons -=1;
+    }
 }
 
 //Function that keeps track of consumers closed by key.
 void rem_key_cons(buffer * c){
-    c->cur_cons -=1;
     c->cons_key_elm +=1;
 }
 

@@ -123,15 +123,14 @@ int main (int argc, char *argv[]){
         while (buff->work){
             
             printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle------------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
-            time_t start = time(NULL);  //Taking the start time
             
-            
-            int cycle_wait_time = exponencial(temp_wait);
+            double cycle_wait_time = exponencial(temp_wait); //RNGeesus give us the wait time!
 
-            printf("\n      Wait time for the cycle: %d\n", cycle_wait_time);
-            total_wait_time = buff->wait_time += cycle_wait_time;
-            sleep(cycle_wait_time);
+            printf("\n      Wait time for this cycle: %0.5fs\n", cycle_wait_time);
+            total_wait_time = buff->wait_time += cycle_wait_time; //updating the total wait time of the producer and buffer.
+            sleep(cycle_wait_time); //waiting
 
+            time_t start = time(NULL);  //Taking the start time to measure semaphore blockage
             printf("\n      Looking for available space in the buffer...\n");
             sem_wait(sem_empty); //If empty is 0 the buffer is full, we gotta wait.
             printf("\n      Space found!!\n");
@@ -145,7 +144,7 @@ int main (int argc, char *argv[]){
             
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            total_block_time = buff->blocked_time += finish - start ;     //Adding the wait time to buffer statistics
+            total_block_time = buff->blocked_time += finish - start ;     //Adding the block time to buffer statistics
 
             
            
@@ -171,11 +170,11 @@ int main (int argc, char *argv[]){
         while (buff->work){
             
             printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
-            int cycle_wait_time = exponencial(temp_wait);
-            total_wait_time = buff->wait_time += cycle_wait_time;
-            printf("\n      Wait time for the cycle: %d\n", cycle_wait_time);
-            sleep(cycle_wait_time);
-            time_t start = time(NULL);
+            double cycle_wait_time = exponencial(temp_wait); //RNGeesus give us the wait time!
+            total_wait_time = buff->wait_time += cycle_wait_time; //Updating the total wait time of the producer and buffer.
+            printf("\n      Wait time for this cycle: %0.4fs\n", cycle_wait_time);
+            sleep(cycle_wait_time); //Waiting
+            time_t start = time(NULL);  //Taking the start time to calculate semaphore blockage.
             
             Message temp = create_message(prod_pid, gen_key(),get_time()); //Creating a message with the process id and a random key.
             
