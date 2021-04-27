@@ -27,7 +27,7 @@ void print_cons_stats(pid_t pid, int messages, float wait, float blocked, float 
     printf("                -> Total number of read messages: %d\n", messages);
     printf("                -> Amount of waited time: %0.4fs\n", wait);
     printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
-    printf("                -> Amount of time in kernel: %lf\n", kernel);
+    printf("                -> Amount of time in kernel: %0.9fs\n", kernel);
     printf("                -> Reason of halt: %s\n",reason);
     printf("\n          |*--------------------End of Statistics-------------------*|\n");
 }
@@ -43,12 +43,12 @@ int main (int argc, char *argv[]){
 
     /*---Parsing the arguments & handling the flags---*/
     int count;
-    char * shm_name;
+    char shm_name[20];
     char * mode;
     char * mean_time;
     for (count = 1; count < argc ; count++){
         switch (argv[count][1]) {
-            case 'n': shm_name = argv[count+1];
+            case 'n': strcpy(shm_name, argv[count+1]);
             case 'm': mode = argv[count+1];
             case 't': mean_time = argv[count+1];
         }
@@ -64,18 +64,25 @@ int main (int argc, char *argv[]){
 
     float total_wait_time = 0;
     float total_block_time = 0;
-    double total_kernel_time = 0;
+    float total_kernel_time = 0;
     int all_time_messages = 0;
     bool key_eliminated = false;
 
 
 /*---------------------Working on the semaphores------------------------*/
   
- 
+    char prod_sem[20] = SEM_PRODUCER_FNAME;
+    strcat(prod_sem,shm_name);
+    char empty_sem[20] = SEM_EMPTY_FNAME;
+    strcat(empty_sem,shm_name);
+    char full_sem[20] = SEM_FULL_FNAME;
+    strcat(full_sem, shm_name);
+
+
     printf("\n |*******************************************************************************|\n |*-----------------------------Consumer Process---------------------------------|\n |*******************************************************************************|\n");
  /*---Opening all the needed semaphores inside the process---*/
-    printf("\n  -> Opening the semaphore: %s...\n", SEM_PRODUCER_FNAME);
-    sem_t * sem_prod = sem_open(SEM_PRODUCER_FNAME, 0);
+    printf("\n  -> Opening the semaphore: %s...\n", prod_sem);
+    sem_t * sem_prod = sem_open(prod_sem, 0);
     //Checking if the semaphore was created succesfully
     if (sem_prod == SEM_FAILED){
         perror("sem_open/producer");
@@ -84,8 +91,8 @@ int main (int argc, char *argv[]){
 
 
     //Creating the full semaphore: This is used to count the number of full items in the buffer
-    printf("\n  -> Opening the semaphore: %s...\n", SEM_FULL_FNAME);
-    sem_t * sem_full = sem_open(SEM_FULL_FNAME, 0);
+    printf("\n  -> Opening the semaphore: %s...\n", full_sem);
+    sem_t * sem_full = sem_open(full_sem, 0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
         perror("sem_open/full");
@@ -93,8 +100,8 @@ int main (int argc, char *argv[]){
     }
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
-    printf("\n  -> Opening the semaphore: %s...\n", SEM_EMPTY_FNAME);
-    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, 0660,0);
+    printf("\n  -> Opening the semaphore: %s...\n", empty_sem);
+    sem_t * sem_empty = sem_open(empty_sem, 0660,0);
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
         perror("sem_open/empty");
@@ -148,7 +155,8 @@ int main (int argc, char *argv[]){
 
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            buff->wait_time = total_block_time += finish - start ;     //Adding the wait time to buffer statistics
+            buff->blocked_time += finish - start;
+            total_block_time += finish - start;
 
             //----------------Trying to measure user/wall time-----------------//
 
@@ -158,15 +166,13 @@ int main (int argc, char *argv[]){
             start2 = clock();
 
             Message temp = circ_bbuf_pop(buff,temp);    //Popping a message from the buffer
-            
-            end = clock();
-            cpu_time_used = ((double) (end - start2)) / CLOCKS_PER_SEC;
-
-            printf("Value of d = %lf\n",cpu_time_used);
-            
+                        
 
             sem_post(sem_prod);     //Releasing the mutex to allow a producer to produce
             sem_post(sem_empty);    //Increasing the number of empty elements in the buffer
+
+            end = clock();
+            cpu_time_used = ((double) (end - start2)) / CLOCKS_PER_SEC;
             
             if(buff->work){        //If we are allowed to work, we proceed with consuming a message.
                 
@@ -194,30 +200,47 @@ int main (int argc, char *argv[]){
             printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
             buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
             total_wait_time += cycle_wait_time; //updating the total wait time of the consumer.
-                        
-            time_t start = time(NULL);  //Start time to meassure semaphore blockage.
+            sleep(cycle_wait_time);
+
+            time_t start = time(NULL);
 
             printf("\n      Looking for messages....\n");
-            sem_wait(sem_full); //If full value is 0 there are no messages to be read so we wait.
+            sem_wait(sem_full); //If full is 0 there are no messages to be read, we gotta wait.
             printf("\n      Messages found!!\n");
-            printf("\n          Waiting for Buffer to be available\n");
-            sem_wait(sem_prod);//opening semaphore
+            printf("\n      Waiting for the buffer to be available\n");
+            sem_wait(sem_prod); //We can read once the mutex is unlocked.
             printf("\n      Buffer is available now...\n");
-            time_t finish = time(NULL);
 
-            buff->wait_time = total_block_time += finish - start ;
-            Message temp = circ_bbuf_pop(buff,temp);
-           
+            time_t finish = time(NULL);     //Taking the time after we finish waiting
+
+            buff->blocked_time += finish - start;
+            total_block_time += finish - start;
+
+            //----------------Trying to measure user/wall time-----------------//
+
+            clock_t start2, end;
+            double cpu_time_used;
+
+            start2 = clock();
+
+            Message temp = circ_bbuf_pop(buff,temp);    //Popping a message from the buffer
+                        
+
+            sem_post(sem_prod);     //Releasing the mutex to allow a producer to produce
+            sem_post(sem_empty);    //Increasing the number of empty elements in the buffer
+
+            end = clock();
+            cpu_time_used = ((double) (end - start2)) / CLOCKS_PER_SEC;
+            
+            if(buff->work){        //If we are allowed to work, we proceed with consuming a message.
                 
-            
-            
-            sem_post(sem_prod);
-            sem_post(sem_empty);
-            if(buff->work){
                 all_time_messages += 1;
+                total_kernel_time += cpu_time_used;
                 print_cons_info(buff);
-                print_message(temp);
-                if (temp.key == temp.pid || temp.key == (cons_pid % 6)){
+                print_message(temp);    //Consuming the message
+                
+                if (temp.key == temp.pid || temp.key == (cons_pid % 6)){ //checking for the special condition to stop the process
+
                     key_eliminated = true;
                     printf("\n   -> Special key condition is met. \n   -> Process %d is now finalizing.\n",cons_pid);
                     rem_key_cons(buff);

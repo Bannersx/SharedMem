@@ -55,11 +55,11 @@ int main(int argc, char *argv[]){
 
     /*---Parsing the arguments & handling the flags---*/
     int count;
-    char * shm_name;
+    char shm_name[20];
     char * size;
     for (count = 1; count < argc ; count++){
         switch (argv[count][1]) {
-            case 'n': shm_name = argv[count+1];
+            case 'n': strcpy(shm_name, argv[count+1]);
             case 's': size = argv[count+1];
         }
     } 
@@ -95,11 +95,18 @@ int main(int argc, char *argv[]){
 
     printf("\n|--> Working on the semaphores now...\n");
 
-    printf("\n|--> Releasing unused semaphores with the names: %s, %s, %s, %s. If there are any...\n", SEM_PRODUCER_FNAME, SEM_CONSUMER_FNAME, SEM_EMPTY_FNAME, SEM_FULL_FNAME);
+    char prod_sem[20] = SEM_PRODUCER_FNAME;
+    strcat(prod_sem,shm_name);
+    char empty_sem[20] = SEM_EMPTY_FNAME;
+    strcat(empty_sem,shm_name);
+    char full_sem[20] = SEM_FULL_FNAME;
+    strcat(full_sem, shm_name);
+
+    printf("\n|--> Releasing unused semaphores with the names: %s, %s, %s. If there are any...\n", prod_sem, empty_sem, full_sem);
     
-    sem_unlink(SEM_PRODUCER_FNAME);
-    sem_unlink(SEM_EMPTY_FNAME);
-    sem_unlink(SEM_FULL_FNAME);
+    sem_unlink(prod_sem);
+    sem_unlink(empty_sem);
+    sem_unlink(full_sem);
     
     printf("|--> Done!\n");
 
@@ -107,8 +114,8 @@ int main(int argc, char *argv[]){
   /*----------------Creation----------------------------------------------------------*/
 
     //Creating the producer semaphore
-    printf("\n|--> Creating the semaphore: %s...\n", SEM_PRODUCER_FNAME);
-    sem_t * sem_prod = sem_open(SEM_PRODUCER_FNAME, O_CREAT, 0660,1);
+    printf("\n|--> Creating the semaphore: %s...\n", prod_sem);
+    sem_t * sem_prod = sem_open(prod_sem, O_CREAT, 0660,1);
     //Checking if the semaphore was created succesfully
     if (sem_prod == SEM_FAILED){
         perror("sem_open/producer");
@@ -117,8 +124,8 @@ int main(int argc, char *argv[]){
 
     
     //Creating the full semaphore: This is used to count the number of full items in the buffer
-    printf("\n|--> Creating the semaphore: %s...\n", SEM_FULL_FNAME);
-    sem_t * sem_full = sem_open(SEM_FULL_FNAME, O_CREAT, 0660,0);
+    printf("\n|--> Creating the semaphore: %s...\n", full_sem);
+    sem_t * sem_full = sem_open(full_sem, O_CREAT, 0660,0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
         perror("sem_open/producer");
@@ -126,8 +133,8 @@ int main(int argc, char *argv[]){
     }
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
-    printf("\n|--> Creating the semaphore: %s...\n", SEM_EMPTY_FNAME);
-    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, O_CREAT, 0660,(temp_size));
+    printf("\n|--> Creating the semaphore: %s...\n", empty_sem);
+    sem_t * sem_empty = sem_open(empty_sem, O_CREAT, 0660,(temp_size));
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
         perror("sem_open/consumer");

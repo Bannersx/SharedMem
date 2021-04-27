@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include "buffer.h"
+#include <string.h>
 
 
 int main (int argc, char *argv[]){
@@ -24,20 +25,31 @@ int main (int argc, char *argv[]){
 
     /*---Parsing the arguments & handling the flags---*/
     int count;
-    char * shm_name;
+    char shm_name[20];
     char * size;
     for (count = 1; count < argc ; count++){
         switch (argv[count][1]) {
-            case 'n': shm_name = argv[count+1];
+            case 'n': strcpy(shm_name,argv[count+1]);
             
         }
     } 
     //shm_unlink(shm_name);
 
 
+    /**----------------------Working on the semaphores--------------------------**/
+    char prod_sem[20] = SEM_PRODUCER_FNAME;
+    strcat(prod_sem,shm_name);
+    
+    char empty_sem[20] = SEM_EMPTY_FNAME;
+    strcat(empty_sem,shm_name);
+    char full_sem[20] = SEM_FULL_FNAME;
+    strcat(full_sem, shm_name);
+
+
+
      /*---Opening all the needed semaphores inside the process---*/
-    printf("\n  -> Dealing with the semaphore: %s...\n", SEM_PRODUCER_FNAME);
-    sem_t * sem_prod = sem_open(SEM_PRODUCER_FNAME, 0);
+    printf("\n  -> Dealing with the semaphore: %s...\n", prod_sem);
+    sem_t * sem_prod = sem_open(prod_sem, 0);
     //Checking if the semaphore was created succesfully
     if (sem_prod == SEM_FAILED){
         perror("sem_open/producer");
@@ -45,8 +57,8 @@ int main (int argc, char *argv[]){
     }
 
     //Creating the full semaphore: This is used to count the number of full items in the buffer
-    printf("\n  -> Dealing with the semaphore: %s...\n", SEM_FULL_FNAME);
-    sem_t * sem_full = sem_open(SEM_FULL_FNAME, 0);
+    printf("\n  -> Dealing with the semaphore: %s...\n", full_sem);
+    sem_t * sem_full = sem_open(full_sem, 0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
         perror("sem_open/producer");
@@ -54,8 +66,8 @@ int main (int argc, char *argv[]){
     }
 
     //Creating the empty semaphore: This is used to keep track of the empty number of elements in the buffer.
-    printf("\n  -> Dealing with the semaphore: %s...\n", SEM_EMPTY_FNAME);
-    sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME,0);
+    printf("\n  -> Dealing with the semaphore: %s...\n", empty_sem);
+    sem_t * sem_empty = sem_open(empty_sem,0);
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
         perror("sem_open/consumer");
@@ -109,9 +121,9 @@ int main (int argc, char *argv[]){
     munmap(addr, sizeof(buffer));
     close(fd);
     shm_unlink(shm_name);
-    sem_unlink(SEM_CONSUMER_FNAME);
-    sem_unlink(SEM_FULL_FNAME);
-    sem_unlink(SEM_EMPTY_FNAME);
+    sem_unlink(prod_sem);
+    sem_unlink(full_sem);
+    sem_unlink(empty_sem);
     sem_close(sem_prod);
     sem_close(sem_full);
     sem_close(sem_empty);
