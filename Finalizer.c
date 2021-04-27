@@ -92,6 +92,8 @@ int main (int argc, char *argv[]){
 
     //Signaling to stop working
     buff->work = false;
+
+    
     while (buff->cur_prod > 0 || buff->cur_cons > 0)
     {
         if (buff->cur_prod == 0){
@@ -107,6 +109,8 @@ int main (int argc, char *argv[]){
 
         }
     }
+
+    
     sleep(3); //Givint time to update information
 
     /*-------------------Statistics------------------------*/

@@ -13,10 +13,19 @@
 
 
 //Function to display a producer statistics
-void print_prod_stats(pid_t pid, int messages, float wait, float blocked, float kernel){
+void print_auto_prod_stats(pid_t pid, int messages, float wait, float blocked, float kernel){
     printf("\n          |*--------------- Here are the Statistics ----------------*|\n");
     printf("\n                -> Proccess ID: %d\n", pid);
     printf("                -> Total number of produced messages: %d\n", messages-1);
+    printf("                -> Amount of waited time: %0.9fs\n", wait);
+    printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
+    printf("                -> Amount of time in kernel: %0.9fs\n", kernel);
+    printf("\n          |*--------------------End of Statistics-------------------*|\n");
+}
+void print_prod_stats(pid_t pid, int messages, float wait, float blocked, float kernel){
+    printf("\n          |*--------------- Here are the Statistics ----------------*|\n");
+    printf("\n                -> Proccess ID: %d\n", pid);
+    printf("                -> Total number of produced messages: %d\n", messages);
     printf("                -> Amount of waited time: %0.4fs\n", wait);
     printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
     printf("                -> Amount of time in kernel: %0.9fs\n", kernel);
@@ -35,7 +44,7 @@ int main (int argc, char *argv[]){
     }
 
     /*---------------Producer statistics----------------*/
-    float total_wait_time = 0;
+    double total_wait_time = 0;
     float total_block_time = 0;
     float total_kernel_time = 0;
     int all_time_messages = 0;
@@ -133,7 +142,6 @@ int main (int argc, char *argv[]){
             double cycle_wait_time = exponencial(temp_wait); //RNGeesus give us the wait time!
 
             printf("\n      Wait time for this cycle: %0.5fs\n", cycle_wait_time);
-            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
             total_wait_time += cycle_wait_time; //updating the total wait time of the producer.
             sleep(cycle_wait_time); //waiting
 
@@ -152,8 +160,7 @@ int main (int argc, char *argv[]){
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
             total_block_time += finish - start ;
-            buff->blocked_time += finish - start ;     //Adding the block time to buffer statistics
-
+            
             
             clock_t start2, end;
             double cpu_time_used;
@@ -186,7 +193,6 @@ int main (int argc, char *argv[]){
             double cycle_wait_time = exponencial(temp_wait); //RNGeesus give us the wait time!
 
             printf("\n      Wait time for this cycle: %0.5fs\n", cycle_wait_time);
-            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
             total_wait_time += cycle_wait_time; //updating the total wait time of the producer.
             sleep(cycle_wait_time); //waiting
 
@@ -198,12 +204,12 @@ int main (int argc, char *argv[]){
             printf("\n      Waiting for buffer to be available\n");
             sem_wait(sem_prod); //We can write once the mutex is unlocked.
             printf("\n      Buffer is available now...\n");
+
             
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
             total_block_time += finish - start ;
-            buff->blocked_time += finish - start ;     //Adding the block time to buffer statistics
-
+            
             
             clock_t start2, end;
             double cpu_time_used;
@@ -229,7 +235,11 @@ int main (int argc, char *argv[]){
         }
 
     }
+
     
+    buff->tot_kernel+= total_kernel_time;
+    buff->wait_time += total_wait_time; //updating the total wait time of the buffer.
+    buff->blocked_time += total_block_time;     //Adding the block time to buffer statistics
     printf("\n      \033[22;31mThis producer has been signaled to end\n");
 
     rem_prod(buff);
@@ -241,8 +251,11 @@ int main (int argc, char *argv[]){
     sem_close(sem_empty);
     printf("\n      Producer pid: %d is now closing\n", prod_pid);
 
-    print_prod_stats(prod_pid,all_time_messages,total_wait_time,total_block_time, total_kernel_time);
-
+    if (mode[0]=='m'){
+        print_prod_stats(prod_pid,all_time_messages,total_wait_time,total_block_time, total_kernel_time);
+    }else{
+        print_auto_prod_stats(prod_pid,all_time_messages,total_wait_time,total_block_time, total_kernel_time);
+    }
     munmap(addr, sizeof(buffer));
     close(fd);
     printf("\n |*---------------------------End of Producer------------------------------------*|\n");

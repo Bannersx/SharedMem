@@ -110,6 +110,7 @@ void print_stats(buffer * c){
     printf("            -> Number of consumer closed by key: %d\n", c->cons_key_elm);
     printf("            -> Amount of time waited: %0.4fs\n", c->wait_time);
     printf("            -> Amount of time blocked by semaphores: %0.4fs\n", c->blocked_time);
+    printf("            -> Amount of time spent in kernel: %0.9fs\n", c->tot_kernel);
     printf("\n        |*--------------------End of Statistics--------------------*|\n");
 }
 

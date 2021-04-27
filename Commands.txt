@@ -1,0 +1,16 @@
+Commands:
+    Finalizer
+        gcc -o fin Finalizer.c buffer.c -lrt -lpthread
+        ./fin -n buffer
+
+    Producer
+        gcc -o prod Producer.c buffer.c -lrt -lpthread -lm -lgsl
+        ./prod -n buffer -m a
+    
+    Consumer
+        gcc -o cons Consumer.c buffer.c -lrt -lpthread -lm -lgsl
+        ./cons -n buffer -m a
+
+    Initializer
+        gcc -o init Initializer.c buffer.c -lrt -lpthread
+        ./init -n buffer -s 5

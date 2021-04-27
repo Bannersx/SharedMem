@@ -42,6 +42,7 @@ typedef struct buffer
     float wait_time;
     float blocked_time;
     int cons_key_elm;
+    float tot_kernel;
 }buffer;
 
 void add_cons(buffer * c);

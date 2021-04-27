@@ -137,7 +137,7 @@ int main (int argc, char *argv[]){
 
             int cycle_wait_time = poisson(temp_wait);   //RNGeesus take the wheel again!
             printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
-            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
+            
             total_wait_time += cycle_wait_time; //updating the total wait time of the consumer.
             sleep(cycle_wait_time);
 
@@ -155,7 +155,7 @@ int main (int argc, char *argv[]){
 
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            buff->blocked_time += finish - start;
+            
             total_block_time += finish - start;
 
             //----------------Trying to measure user/wall time-----------------//
@@ -198,7 +198,7 @@ int main (int argc, char *argv[]){
             
             int cycle_wait_time = poisson(temp_wait);   //RNGeesus take the wheel again!
             printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
-            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
+            
             total_wait_time += cycle_wait_time; //updating the total wait time of the consumer.
             sleep(cycle_wait_time);
 
@@ -213,7 +213,7 @@ int main (int argc, char *argv[]){
 
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            buff->blocked_time += finish - start;
+            
             total_block_time += finish - start;
 
             //----------------Trying to measure user/wall time-----------------//
@@ -234,7 +234,7 @@ int main (int argc, char *argv[]){
             
             if(buff->work){        //If we are allowed to work, we proceed with consuming a message.
                 
-                all_time_messages += 1;
+                
                 total_kernel_time += cpu_time_used;
                 print_cons_info(buff);
                 print_message(temp);    //Consuming the message
@@ -247,6 +247,7 @@ int main (int argc, char *argv[]){
                     break;
                 }
             }
+            all_time_messages += 1;
 
             
         }
@@ -254,7 +255,9 @@ int main (int argc, char *argv[]){
     }
     
 
-    
+    buff->tot_kernel+=total_kernel_time;
+    buff->wait_time += total_wait_time; //updating the total wait time of the buffer.
+    buff->blocked_time += total_block_time;     //Adding the block time to buffer statistics
     printf("\n      \033[22;31mThis consumer has been signaled to end\n");
 
     rem_cons(buff);
