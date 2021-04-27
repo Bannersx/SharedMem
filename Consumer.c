@@ -22,12 +22,12 @@ void print_cons_stats(pid_t pid, int messages, float wait, float blocked, float 
         reason = "The consumer was signaled by the\n                   finalizer to end";
     }
 
-    printf("\n          |*--------------- Here are the Statistics ----------------*|\n");
+    printf("\n          |*------------ Here are the Consumer Statistics -----------*|\n");
     printf("\n                -> Proccess ID: %d\n", pid);
     printf("                -> Total number of read messages: %d\n", messages);
     printf("                -> Amount of waited time: %0.4fs\n", wait);
     printf("                -> Amount of time blocked by semaphores: %0.4fs\n", blocked);
-    printf("                -> Amount of time in kernel: %.3f\n", kernel);
+    printf("                -> Amount of time in kernel: %lf\n", kernel);
     printf("                -> Reason of halt: %s\n",reason);
     printf("\n          |*--------------------End of Statistics-------------------*|\n");
 }
@@ -88,7 +88,7 @@ int main (int argc, char *argv[]){
     sem_t * sem_full = sem_open(SEM_FULL_FNAME, 0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
-        perror("sem_open/producer");
+        perror("sem_open/full");
         exit(EXIT_FAILURE);
     }
 
@@ -97,7 +97,7 @@ int main (int argc, char *argv[]){
     sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, 0660,0);
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
-        perror("sem_open/consumer");
+        perror("sem_open/empty");
         exit(EXIT_FAILURE);
     }
 
@@ -130,7 +130,8 @@ int main (int argc, char *argv[]){
 
             int cycle_wait_time = poisson(temp_wait);   //RNGeesus take the wheel again!
             printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
-            total_wait_time = buff->wait_time += cycle_wait_time; //updating the total wait time of the producer and buffer.
+            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
+            total_wait_time += cycle_wait_time; //updating the total wait time of the consumer.
             sleep(cycle_wait_time);
 
             time_t start = time(NULL);
@@ -151,16 +152,18 @@ int main (int argc, char *argv[]){
 
             //----------------Trying to measure user/wall time-----------------//
 
-            struct timespec begin, end; 
-            clock_gettime(CLOCK_REALTIME, &begin);
+            clock_t start2, end;
+            double cpu_time_used;
+
+            start2 = clock();
 
             Message temp = circ_bbuf_pop(buff,temp);    //Popping a message from the buffer
             
+            end = clock();
+            cpu_time_used = ((double) (end - start2)) / CLOCKS_PER_SEC;
 
-            clock_gettime(CLOCK_REALTIME, &end);
-            long seconds = end.tv_sec - begin.tv_sec;
-            long nanoseconds = end.tv_nsec - begin.tv_nsec;
-            double elapsed = seconds + nanoseconds*1e-9;
+            printf("Value of d = %lf\n",cpu_time_used);
+            
 
             sem_post(sem_prod);     //Releasing the mutex to allow a producer to produce
             sem_post(sem_empty);    //Increasing the number of empty elements in the buffer
@@ -168,7 +171,7 @@ int main (int argc, char *argv[]){
             if(buff->work){        //If we are allowed to work, we proceed with consuming a message.
                 
                 all_time_messages += 1;
-                total_kernel_time += elapsed;
+                total_kernel_time += cpu_time_used;
                 print_cons_info(buff);
                 print_message(temp);    //Consuming the message
                 
@@ -189,7 +192,8 @@ int main (int argc, char *argv[]){
             
             int cycle_wait_time = poisson(temp_wait);   //RNGeesus take the wheel again!
             printf("\n      Wait time for this cycle: %d\n", cycle_wait_time);
-            total_wait_time = buff->wait_time += cycle_wait_time; //updating the total wait time of the producer and buffer.
+            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
+            total_wait_time += cycle_wait_time; //updating the total wait time of the consumer.
                         
             time_t start = time(NULL);  //Start time to meassure semaphore blockage.
 

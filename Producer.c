@@ -81,7 +81,7 @@ int main (int argc, char *argv[]){
     sem_t * sem_full = sem_open(SEM_FULL_FNAME, 0);
     //Checking if the semaphore was created succesfully
     if (sem_full == SEM_FAILED){
-        perror("sem_open/producer");
+        perror("sem_open/full");
         exit(EXIT_FAILURE);
     }
 
@@ -90,7 +90,7 @@ int main (int argc, char *argv[]){
     sem_t * sem_empty = sem_open(SEM_EMPTY_FNAME, 0660,0);
     //Checking if the semaphore was created succesfully
     if (sem_empty == SEM_FAILED){
-        perror("sem_open/consumer");
+        perror("sem_open/empty");
         exit(EXIT_FAILURE);
     }
 
@@ -127,7 +127,8 @@ int main (int argc, char *argv[]){
             double cycle_wait_time = exponencial(temp_wait); //RNGeesus give us the wait time!
 
             printf("\n      Wait time for this cycle: %0.5fs\n", cycle_wait_time);
-            total_wait_time = buff->wait_time += cycle_wait_time; //updating the total wait time of the producer and buffer.
+            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
+            total_wait_time += cycle_wait_time; //updating the total wait time of the producer.
             sleep(cycle_wait_time); //waiting
 
             time_t start = time(NULL);  //Taking the start time to measure semaphore blockage
@@ -144,10 +145,14 @@ int main (int argc, char *argv[]){
             
             time_t finish = time(NULL);     //Taking the time after we finish waiting
 
-            total_block_time = buff->blocked_time += finish - start ;     //Adding the block time to buffer statistics
+            total_block_time += finish - start ;
+            buff->blocked_time += finish - start ;     //Adding the block time to buffer statistics
 
             
-           
+            clock_t start2, end;
+            double cpu_time_used;
+
+            start2 = clock();
 
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
@@ -161,9 +166,11 @@ int main (int argc, char *argv[]){
             sem_post(sem_prod); //Releasing the mutex to allow a other processes to access memory
             sem_post(sem_full); //Increasing the number of full elements in the buffer
             
-            time_t out_of_kernel = time(NULL);
-            float kernel_time = finish -out_of_kernel;
-            total_kernel_time +=kernel_time;
+           
+            end = clock();
+            cpu_time_used = ((double) (end - start2)) / CLOCKS_PER_SEC;
+            total_kernel_time +=cpu_time_used;
+            
 
         }
     }else{
@@ -171,7 +178,8 @@ int main (int argc, char *argv[]){
             
             printf("\n \033[22;36m*--------------------------------------------------------------------------------*\n *-------------------------Starting a new Production cycle-----------------------*\n *--------------------------------------------------------------------------------*\033[22;0m\n");
             double cycle_wait_time = exponencial(temp_wait); //RNGeesus give us the wait time!
-            total_wait_time = buff->wait_time += cycle_wait_time; //Updating the total wait time of the producer and buffer.
+            buff->wait_time += cycle_wait_time; //updating the total wait time of the buffer.
+            total_wait_time += cycle_wait_time; //updating the total wait time of the producer.
             printf("\n      Wait time for this cycle: %0.4fs\n", cycle_wait_time);
             sleep(cycle_wait_time); //Waiting
             time_t start = time(NULL);  //Taking the start time to calculate semaphore blockage.
@@ -187,9 +195,13 @@ int main (int argc, char *argv[]){
 
             time_t finish = time(NULL);
 
-             buff->blocked_time = total_block_time += finish - start ;
+            total_block_time += finish - start ;
+            buff->blocked_time += finish - start ;     //Adding the block time to buffer statistics
             
+            clock_t start2, end;
+            double cpu_time_used;
 
+            start2 = clock();
             if(buff->work){        //If we are allowed to work, we proceed with pushing a message.
                 
                 
@@ -201,10 +213,11 @@ int main (int argc, char *argv[]){
             
             sem_post(sem_prod); //Releasing the mutex to allow a other processes to access memory
             sem_post(sem_full); //Increasing the number of full elements in the buffer
-
-            time_t out_of_kernel = time(NULL);
-            float kernel_time = finish -out_of_kernel;
-            total_kernel_time +=kernel_time;
+            
+            end = clock();
+            cpu_time_used = ((double) (end - start2)) / CLOCKS_PER_SEC;
+            
+            total_kernel_time +=cpu_time_used;
         }
 
     }
